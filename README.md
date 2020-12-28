@@ -17,12 +17,12 @@ Obviously, modify as meets your needs.
 
 ## Instructions
 
-Ensure you have **modified** the places marked with angle brackets **< EDIT HERE >** as meets your unique needs within the files before running the command below.
+Ensure you have **modified** the places marked with **angle brackets** like **< EDIT HERE >** across the project to meet your unique needs before running the commands below.
 
 ### Create ansible user, add ssh "authorized_key" and add user to sudoer's
 
 This is just the initial setup, the "bootstrap.yml" playbook. It sets-up a user which ansible will use subsequently to talk to the remote server.
-This SSH
+It may require password for elevated previleges with sudo.
 
 ```
 # ansible-playbook --ask-become-pass bootstrap.yml
@@ -30,7 +30,7 @@ This SSH
 
 ### Deploy to server
 
-This deploys your app, largely following the deployment instructions given in the guides linked above. It uses the remote user created by the **bootstrap.yml** playbook to talk with the server. Again update the roles to meet your specific use case.
+This deploys your app, largely following the deployment instructions given in the guides linked above. It uses the remote user created by the **bootstrap.yml** playbook to talk with the server. Again update the roles to meet your specific use case. It should not require password for elevated previleges again.
 
 ```
 # ansible-playbook site.yml
