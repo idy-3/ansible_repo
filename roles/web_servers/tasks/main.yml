@@ -50,7 +50,6 @@
 
 - name: Copy project directory to the remote server (rsync)(src)
   tags: copy, move, rsync
-  delegate_to: debian_10 # server alias from inventory file
   synchronize:
     src: "{{ localhost_dir }}//<LOCAL FOLDER CLONED INTO>"
     dest: <PROJECT REMOTE FOLDER>
@@ -68,7 +67,7 @@
     virtualenv: "{{ project_dir }}/venv"
     virtualenv_command: python3 -m venv
 
-- name: transfer .env (backend)
+- name: Generate .env (backend)
   tags: env
   template:
     src: "{{ django_env_file }}"
