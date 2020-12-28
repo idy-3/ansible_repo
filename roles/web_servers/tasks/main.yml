@@ -109,7 +109,10 @@
     - makemigrations
     - migrate
 
-# initadmin is a custom django management command to createsuperuser
+# https://docs.djangoproject.com/en/3.0/ref/django-admin/#django-admin-createsuperuser
+# if your are using django version 3.0 up,
+# Set DJANGO_SUPERUSER_PASSWORD, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL enviroment variables
+# and use "createsuperuser --noinput" otherwise create custom django management command to createsuperuser
 - name: Create an initial superuser and django collectstatic
   tags: superuser, createsuperuser, collectstatic, staticfiles
   django_manage:
@@ -117,7 +120,7 @@
     project_path: "{{ project_dir }}/<WHERE manage.py RESIDES>/"
     virtualenv: "{{ project_dir }}/venv"
   loop:
-    - initadmin
+    - "createsuperuser --noinput"
     - collectstatic
 
 - name: Use a virtual environment and install gunicorn

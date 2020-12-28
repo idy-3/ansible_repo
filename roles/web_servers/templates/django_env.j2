@@ -9,6 +9,6 @@ EMAIL_URL=smtp+tls://{{ email_address }}:{{ email_pass }}@{{ email_host }}:{{ em
 ALLOWED_HOSTS={{ allowed_host|join(',') }}
 DATABASE_URL=postgres://{{ postgres_user }}:{{ postgres_pass }}@{{ postgres_host }}:{{ postgres_port }}/{{ postgres_db }}
 
-DJANGO_SU_NAME={{ django_name }}
-DJANGO_SU_EMAIL={{ django_email }}
-DJANGO_SU_PASS={{ django_pass }}
+DJANGO_SUPERUSER_USERNAME={{ django_name }}
+DJANGO_SUPERUSER_EMAIL={{ django_email }}
+DJANGO_SUPERUSER_PASSWORD={{ django_pass }}
