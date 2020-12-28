@@ -1,2 +1,2 @@
 [web_servers]
-10.0.2.4 
+debian_10 ansible_host=<IP ADDRESS OR ...>

@@ -1,0 +1,181 @@
+- name: Allow OpenSSH and enable UFW
+  tags: firewall, UFW, OpenSSH
+  ufw:
+    rule: allow
+    name: OpenSSH
+    state: enabled
+
+- name: Create a new database with name {{ postgres_db }}"
+  tags: postgres, database
+  become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true
+  postgresql_db:
+    name: "{{ postgres_db }}"
+
+- name: Connect to {{ postgres_db }} database, create django user, and grant access to database
+  tags: postgres, database
+  postgresql_user:
+    db: "{{ postgres_db }}"
+    name: "{{ postgres_user }}"
+    password: "{{ postgres_pass }}"
+    priv: ALL
+  become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true
+
+# Github ssh address (No passphrase)
+- name: Clone repo backend (repo)
+  tags: git, clone
+  become_user: <LOCAL USER>
+  local_action:
+    module: git
+    repo: <BACKEND GITHUB REPO SSH ADDRESS>
+    dest: "{{ localhost_dir }}/<LOCAL FOLDER TO CLONE TO>/<FOLDER NAME>"
+    accept_hostkey: yes
+    recursive: no
+  register: backend_repo
+
+# Github ssh address (No passphrase)
+- name: Clone repo frontend (repo)
+  tags: git, clone
+  become_user: <LOCAL USER>
+  local_action:
+    module: git
+    repo: <FRONTEND GITHUB REPO SSH ADDRESS>
+    dest: "{{ localhost_dir }}/<LOCAL FOLDER TO CLONE TO>/<FOLDER NAME>"
+    accept_hostkey: yes
+    recursive: no
+  register: frontend_repo
+
+- name: Copy project directory to the remote server (rsync)(src)
+  tags: copy, move, rsync
+  synchronize:
+    src: "{{ localhost_dir }}//<LOCAL FOLDER CLONED INTO>"
+    dest: <PROJECT REMOTE FOLDER>
+    recursive: yes
+    partial: yes
+    rsync_opts:
+      - "--chown=<OWNER>:<GROUP>"
+      - "--exclude={'.gitignore', 'LICENSE', 'README.md'}"
+  when: frontend_repo.changed or backend_repo.changed
+
+- name: Use a virtual environment and install packages
+  tags: venv, requirements
+  pip:
+    requirements: "{{ project_dir }}/<PATH TO>/requirements.txt"
+    virtualenv: "{{ project_dir }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: transfer .env (backend)
+  tags: env
+  template:
+    src: "{{ django_env_file }}"
+    dest: "{{ project_dir }}/<WHERE .env SHOULD RESIDE>/.env"
+    mode: 0644
+
+# - name: Copy .env (backend)
+#   tags: env
+#   copy:
+#     src: .env
+#     dest: "{{ project_dir }}//<WHERE .env SHOULD RESIDE>/"
+#     mode: 0644
+
+- name: Copy .env (frontend)
+  tags: env
+  copy:
+    src: .env.production.local
+    dest: "{{ project_dir }}//<WHERE .env SHOULD RESIDE>/"
+    mode: 0644
+
+- name: Install npm dependecies and build
+  tags: npm, build
+  command: "{{ item }}"
+  loop:
+    - npm install --production
+    - npm run build
+  args:
+    chdir: "{{ project_dir }}/<WHERE package.json RESIDES>"
+  when: frontend_repo.changed
+
+- name: Django makemigrations and migrate
+  tags: migrate, db, database,
+  django_manage:
+    command: "{{ item }}"
+    project_path: "{{ project_dir }}/<WHERE manage.py RESIDES>/"
+    virtualenv: "{{ project_dir }}/venv"
+  loop:
+    - makemigrations
+    - migrate
+
+# initadmin is a custom django management command to createsuperuser
+- name: Create an initial superuser and django collectstatic
+  tags: superuser, createsuperuser, collectstatic, staticfiles
+  django_manage:
+    command: "{{ item }}"
+    project_path: "{{ project_dir }}/<WHERE manage.py RESIDES>/"
+    virtualenv: "{{ project_dir }}/venv"
+  loop:
+    - initadmin
+    - collectstatic
+
+- name: Use a virtual environment and install gunicorn
+  tags: venv, gunicorn, server
+  pip:
+    name: gunicorn
+    virtualenv: "{{ project_dir }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: Copy gunicorn socket file
+  tags: gunicorn, server
+  copy:
+    src: gunicorn.socket
+    dest: "{{ gunicorn_dir }}"
+
+- name: Generate gunicorn.service file from template
+  tags: gunicorn, server
+  template:
+    src: "{{ gunicorn_service_file }}"
+    dest: "{{ gunicorn_dir }}/gunicorn.service"
+  notify: "restart daemon"
+
+- name: Start and enable gunicorn
+  tags: gunicorn, server
+  systemd:
+    name: gunicorn
+    state: started
+    enabled: yes
+
+- name: Generate NGINX config file from template
+  tags: nginx, server
+  template:
+    src: "{{ nginx_config_file }}"
+    dest: "{{ nginx_dir }}/<NAME OF CONFIG FILE>"
+  notify:
+    - "restart nginx"
+    - "restart gunicorn"
+
+- name: Create a symbolic link
+  tags: nginx, server
+  file:
+    src: "{{ nginx_dir }}/<NAME OF CONFIG FILE>"
+    dest: /etc/nginx/sites-enabled/<NAME OF CONFIG FILE>
+    state: link
+  notify: "restart nginx"
+
+- name: Allow nginx
+  tags: firewall, UFW, nginx
+  ufw:
+    rule: allow
+    name: "Nginx Full"
+
+- name: Insert/Update "client_max_body_size" surrounded by custom markers after "http {" line
+  tags: nginx, server
+  blockinfile:
+    path: /etc/nginx/nginx.conf
+    marker: "# {mark} ANSIBLE MANAGED BLOCK #"
+    insertafter: "http {"
+    block: "client_max_body_size 20M;"
+  notify:
+    - "restart nginx"
+    - "restart gunicorn"

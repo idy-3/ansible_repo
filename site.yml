@@ -1,35 +1,21 @@
 ---
-
+# TO RUN - ansible-playbook site.yml
 - hosts: all
   become: true
   pre_tasks:
+    - name: update cache (Debian)
+      tags: always
+      apt:
+        update_cache: yes
+      changed_when: false
+      when: ansible_distribution in ["Debian", "Ubuntu"]
 
-  - name: install updates (Debian)
-    tags: always
-    apt:
-      upgrade: dist
-      update_cache: yes
-    when: ansible_distribution == "Debian"
-
+- hosts: all
+  become: true
+  roles:
+    - base
 
 - hosts: web_servers
   become: true
-  tasks:
-
-  - name: install apache and php package
-    tags: apache,apache2,debian
-    apt:
-      name: 
-        - apache2
-        - libapache2-mod-php
-      state: latest
-    when: ansible_distribution == "Debian"
-
-  - name: copy default html file for site
-    tags: apache,apache2,html
-    copy:
-      src: default_site.html
-      dest: /var/www/html/index.html
-      owner: root
-      group: root
-      mode: 0644
+  roles:
+    - web_servers

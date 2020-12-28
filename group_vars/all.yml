@@ -1,0 +1,32 @@
+allowed_host:
+  - <IP ADDRESS>
+  - <DOMAIN NAME>
+
+# paths
+project_dir: /<REMOTE USER>/<PROJECT>/<DIRECTORY>
+gunicorn_dir: /etc/systemd/system
+localhost_dir: /<LOCAL USER>/<PROJECT>/<DIRECTORY>
+nginx_dir: /etc/nginx/sites-available
+
+# template files
+gunicorn_service_file: gunicorn_service.j2
+nginx_config_file: nginx_config.j2
+django_env_file: django_env.j2
+
+# postgres credentials
+postgres_db: <DATABASE NAME>
+postgres_user: <DATABASE USER>
+postgres_pass: <DATABASE PASSWORD>
+postgres_host: <HOST>
+postgres_port: <PORT>
+
+# django credentials
+django_name: <SUPERUSER NAME>
+django_email: <SUPERUSER EMAIL>
+django_pass: <SUPERUSER PASSWORD>
+
+# email credentials
+email_address: <EMAIL address>
+email_pass: <EMAIL password>
+email_host: <EMAIL host>
+email_port: <EMAIL port number>

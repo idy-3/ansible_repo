@@ -1,0 +1,37 @@
+- name: Start/reload NGINX (Handler)
+  tags: nginx, server
+  service:
+    name: nginx
+    state: reloaded
+    enabled: yes
+  listen: "restart nginx"
+
+- name: Check NGINX (Handler)
+  command: nginx -t
+  register: config_check
+  ignore_errors: yes
+  check_mode: no
+  changed_when: false
+  listen: "restart nginx"
+
+- name: Print NGINX error (Handler)
+  debug:
+    var: config_check.stderr_lines
+  failed_when: config_check.rc != 0
+  when:
+    - config_check.stderr_lines is defined
+    - config_check.rc != 0
+  listen: "restart nginx"
+
+- name: Start/reload gunicorn (Handler)
+  tags: gunicorn, server
+  systemd:
+    name: gunicorn
+    state: restarted
+  listen: "restart gunicorn"
+
+- name: Systemd daemon-reload (Handler)
+  tags: systemd, daemon
+  systemd:
+    daemon_reload: yes
+  listen: "restart daemon"

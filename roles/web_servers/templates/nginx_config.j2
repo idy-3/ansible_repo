@@ -1,0 +1,36 @@
+server {
+    listen 80;
+    server_name {{ allowed_host|join(' ') }};
+    
+    root {{ project_dir }}/<PATH TO frontend>/build;
+    index index.html;
+
+    location / {        
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        try_files $uri $uri/ @backend;
+    }
+
+    location @backend {
+        root {{ project_dir }}/<PATH TO frontend>;
+    }
+    
+    location /media/ {
+        root {{ project_dir }}/<PATH TO frontend>;    
+    }    
+    
+    location ~ ^/api/ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+
+    location ~ ^/admin/ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+    
+}

@@ -1,0 +1,35 @@
+---
+# TO RUN - ansible-playbook --ask-become-pass bootstrap.yml
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: install updates (Debian)
+      tags: always
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- hosts: all
+  become: true
+  tasks:
+    - name: create user
+      tags: always
+      user:
+        name: <REMOTE USER>
+        groups: root
+
+    - name: add ssh key for eragon
+      tags: always
+      authorized_key:
+        user: <REMOTE USER>
+        key: "<PUBLIC KEY THAT ANSIBLE WILL USE SSH>"
+
+    - name: add sudoers file
+      tags: always
+      copy:
+        src: sudoer_<REMOTE USER>
+        dest: /etc/sudoers.d/<REMOTE USER>
+        owner: root
+        group: root
+        mode: 0440
